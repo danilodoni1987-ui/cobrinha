@@ -1,0 +1,6 @@
+{
+  "name": "Cobrinha Arena",
+  "description": "Jogo clássico da Cobrinha em HTML5 Canvas com 6 níveis progressivos, ranking local e controles para desktop e mobile.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

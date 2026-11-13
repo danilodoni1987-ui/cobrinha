@@ -1,0 +1,19 @@
+# Dependências e builds locais
+node_modules/
+build/
+dist/
+coverage/
+
+# Vercel e ferramentas locais
+.vercel/
+.vscode/
+.idea/
+
+# Sistema operacional e logs
+.DS_Store
+Thumbs.db
+*.log
+
+# Variáveis de ambiente
+.env*
+!.env.example

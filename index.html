@@ -1,0 +1,312 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Cobrinha Arena — Jogo Clássico com Níveis e Ranking</title>
+    <meta
+      name="description"
+      content="Jogo clássico da Cobrinha em HTML5 Canvas com 6 níveis progressivos, ranking local e controles para desktop e mobile."
+    />
+    <meta property="og:title" content="Cobrinha Arena — Jogo Clássico com Níveis e Ranking" />
+    <meta
+      property="og:description"
+      content="Jogo clássico da Cobrinha em HTML5 Canvas com 6 níveis progressivos, ranking local e controles para desktop e mobile."
+    />
+    <meta property="og:type" content="website" />
+    <meta name="twitter:card" content="summary_large_image" />
+
+    <!-- Tipografia editorial e tabular via Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@500;600;700&family=Outfit:wght@600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <!-- Barra superior de navegação em 3 zonas -->
+      <header class="topbar">
+        <a href="#arena" class="brand">Cobrinha Arena</a>
+
+        <nav class="topnav" aria-label="Navegação principal">
+          <a href="#arena">Arena</a>
+          <a href="#ranking-section">Ranking</a>
+          <a href="#levels-section">Níveis</a>
+        </nav>
+
+        <div class="topbar-actions">
+          <button
+            type="button"
+            id="btn-sound"
+            class="btn-ghost"
+            aria-pressed="true"
+            title="Ativar ou desativar efeitos sonoros"
+          >
+            Som: Ligado
+          </button>
+        </div>
+      </header>
+
+      <!-- Conteúdo principal em duas colunas no desktop -->
+      <main class="workspace">
+        <!-- Coluna principal: HUD + Canvas + Controles -->
+        <section id="arena" class="arena-column" aria-label="Área do jogo">
+          <!-- Painel de status da partida -->
+          <div class="hud-bar" role="status" aria-live="polite">
+            <div class="hud-item">
+              <span class="hud-label">Jogador</span>
+              <strong id="hud-player" class="hud-value truncate">—</strong>
+            </div>
+
+            <div class="hud-item">
+              <span class="hud-label">Nível atual</span>
+              <strong id="hud-level" class="hud-value tabular">1 / 6</strong>
+            </div>
+
+            <div class="hud-item hud-item-wide">
+              <div class="hud-score-row">
+                <span class="hud-label">Pontuação</span>
+                <strong id="hud-score" class="hud-value tabular">0 / 50 pts</strong>
+              </div>
+              <div class="progress-track" aria-hidden="true">
+                <div id="hud-progress" class="progress-fill"></div>
+              </div>
+            </div>
+
+            <div class="hud-item">
+              <span class="hud-label">Recorde</span>
+              <strong id="hud-best" class="hud-value tabular">0 pts</strong>
+            </div>
+          </div>
+
+          <!-- Palco do Canvas e Sobreposições de Estado -->
+          <div class="canvas-stage" id="canvas-stage">
+            <canvas
+              id="game-canvas"
+              width="560"
+              height="560"
+              aria-label="Tabuleiro do jogo da Cobrinha"
+            ></canvas>
+
+            <!-- Tela Inicial: identificação do jogador e regras -->
+            <div id="overlay-start" class="stage-overlay is-visible">
+              <div class="overlay-card">
+                <p class="overlay-kicker">6 Níveis · Ranking Local</p>
+                <h1 class="overlay-title">Cobrinha Arena</h1>
+                <p class="overlay-desc">
+                  Guie a cobra pela grade, colete os frutos dourados e alcance a meta de pontos de
+                  cada nível sem bater nas paredes, nos obstáculos ou no próprio corpo.
+                </p>
+
+                <form id="start-form" class="start-form" novalidate>
+                  <label for="player-name" class="field-label">Seu nome para o ranking</label>
+                  <input
+                    type="text"
+                    id="player-name"
+                    name="playerName"
+                    maxlength="20"
+                    autocomplete="nickname"
+                    placeholder="Ex.: Ana, Lucas, Jogador 1"
+                    required
+                  />
+                  <p id="name-error" class="field-error" role="alert" hidden>
+                    Digite seu nome antes de iniciar a partida.
+                  </p>
+                  <button type="submit" id="btn-start" class="btn-primary">Iniciar Partida</button>
+                </form>
+
+                <p class="overlay-credit">Criado por [Seu nome]</p>
+              </div>
+            </div>
+
+            <!-- Tela de Pausa -->
+            <div id="overlay-pause" class="stage-overlay" hidden>
+              <div class="overlay-card overlay-card-compact">
+                <p class="overlay-kicker">Partida em espera</p>
+                <h2 class="overlay-title">Jogo Pausado</h2>
+                <p class="overlay-desc">
+                  Pressione Espaço, P ou clique em continuar para retomar do ponto em que parou.
+                </p>
+                <div class="overlay-actions">
+                  <button type="button" id="btn-resume" class="btn-primary">Continuar</button>
+                  <button type="button" id="btn-restart-pause" class="btn-secondary">
+                    Reiniciar
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <!-- Tela de Transição de Nível -->
+            <div id="overlay-levelup" class="stage-overlay" hidden>
+              <div class="overlay-card overlay-card-compact">
+                <p id="levelup-kicker" class="overlay-kicker">Meta atingida</p>
+                <h2 id="levelup-title" class="overlay-title">Nível 2 Desbloqueado</h2>
+                <p id="levelup-desc" class="overlay-desc">
+                  Velocidade maior e novos obstáculos na arena. Prepare-se para continuar.
+                </p>
+                <div class="overlay-actions">
+                  <button type="button" id="btn-next-level" class="btn-primary">
+                    Avançar para o Nível
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <!-- Tela de Fim de Jogo -->
+            <div id="overlay-gameover" class="stage-overlay" hidden>
+              <div class="overlay-card">
+                <p id="gameover-reason" class="overlay-kicker">Colisão detectada</p>
+                <h2 class="overlay-title">Fim de Jogo</h2>
+                <p id="gameover-summary" class="overlay-desc">
+                  Sua pontuação foi salva automaticamente no ranking local.
+                </p>
+
+                <div class="gameover-stats">
+                  <div class="stat-box">
+                    <span class="stat-label">Pontuação final</span>
+                    <strong id="final-score" class="stat-value tabular">0 pts</strong>
+                  </div>
+                  <div class="stat-box">
+                    <span class="stat-label">Nível alcançado</span>
+                    <strong id="final-level" class="stat-value tabular">Nível 1</strong>
+                  </div>
+                </div>
+
+                <div class="overlay-actions">
+                  <button type="button" id="btn-play-again" class="btn-primary">
+                    Jogar Novamente
+                  </button>
+                  <button type="button" id="btn-change-player" class="btn-secondary">
+                    Trocar Jogador
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Barra de ações rápidas e dicas de controle -->
+          <div class="arena-toolbar">
+            <p class="controls-hint">
+              Desktop: Setas ou WASD · Espaço para pausar · Mobile: deslize ou use os botões abaixo
+            </p>
+            <div class="toolbar-buttons">
+              <button type="button" id="btn-pause" class="btn-secondary" disabled>Pausar</button>
+              <button type="button" id="btn-restart" class="btn-secondary" disabled>Reiniciar</button>
+            </div>
+          </div>
+
+          <!-- Controles direcionais táteis para dispositivos móveis -->
+          <div class="touch-controls" aria-label="Controles direcionais na tela">
+            <button
+              type="button"
+              class="dpad-btn dpad-up"
+              data-dir="UP"
+              aria-label="Mover para cima"
+            >
+              ↑
+            </button>
+            <button
+              type="button"
+              class="dpad-btn dpad-left"
+              data-dir="LEFT"
+              aria-label="Mover para a esquerda"
+            >
+              ←
+            </button>
+            <button
+              type="button"
+              class="dpad-btn dpad-down"
+              data-dir="DOWN"
+              aria-label="Mover para baixo"
+            >
+              ↓
+            </button>
+            <button
+              type="button"
+              class="dpad-btn dpad-right"
+              data-dir="RIGHT"
+              aria-label="Mover para a direita"
+            >
+              →
+            </button>
+          </div>
+        </section>
+
+        <!-- Barra lateral: Ranking Persistente + Guia de Níveis -->
+        <aside class="sidebar">
+          <!-- Ranking -->
+          <section id="ranking-section" class="panel" aria-labelledby="ranking-heading">
+            <div class="panel-header">
+              <div>
+                <h2 id="ranking-heading" class="panel-title">Ranking</h2>
+                <p class="panel-subtitle">Melhores pontuações salvas neste navegador</p>
+              </div>
+              <button
+                type="button"
+                id="btn-clear-ranking"
+                class="btn-text-danger"
+                title="Limpar todo o histórico do ranking"
+              >
+                Limpar
+              </button>
+            </div>
+
+            <!-- Confirmação em linha para limpar ranking (evita window.confirm) -->
+            <div id="clear-confirm" class="confirm-bar" hidden>
+              <span>Apagar todo o ranking?</span>
+              <div class="confirm-actions">
+                <button type="button" id="btn-confirm-clear" class="btn-danger-sm">Confirmar</button>
+                <button type="button" id="btn-cancel-clear" class="btn-secondary-sm">
+                  Cancelar
+                </button>
+              </div>
+            </div>
+
+            <div id="ranking-empty" class="empty-state">
+              Nenhuma partida registrada ainda. Seja o primeiro a entrar no ranking.
+            </div>
+
+            <div id="ranking-table-wrap" class="table-wrap" hidden>
+              <table class="ranking-table">
+                <thead>
+                  <tr>
+                    <th scope="col">#</th>
+                    <th scope="col">Jogador</th>
+                    <th scope="col">Nível</th>
+                    <th scope="col" class="num-col">Pontos</th>
+                  </tr>
+                </thead>
+                <tbody id="ranking-body"></tbody>
+              </table>
+            </div>
+          </section>
+
+          <!-- Progressão de níveis -->
+          <section id="levels-section" class="panel" aria-labelledby="levels-heading">
+            <div class="panel-header">
+              <div>
+                <h2 id="levels-heading" class="panel-title">Progressão de Níveis</h2>
+                <p class="panel-subtitle">Grade, velocidade e meta de cada etapa</p>
+              </div>
+            </div>
+
+            <ol id="levels-list" class="levels-list"></ol>
+          </section>
+        </aside>
+      </main>
+
+      <!-- Rodapé discreto com créditos visíveis -->
+      <footer class="site-footer">
+        <p>Criado por <strong>[Seu nome]</strong></p>
+        <span class="footer-sep" aria-hidden="true">·</span>
+        <p>Cobrinha Arena · HTML5 Canvas, CSS3 e JavaScript puro</p>
+      </footer>
+    </div>
+
+    <script type="module" src="script.js"></script>
+  </body>
+</html>
